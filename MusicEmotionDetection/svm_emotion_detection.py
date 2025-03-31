@@ -17,12 +17,15 @@ def extract_features(file_path):
         mfcc = np.mean(librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13), axis=1)  # MFCC
         chroma = np.mean(librosa.feature.chroma_stft(y=y, sr=sr), axis=1)     # Chroma
         spectral_contrast = np.mean(librosa.feature.spectral_contrast(y=y, sr=sr), axis=1)  # Spectral contrast
-        tempo, _ = librosa.beat.beat_track(y=y, sr=sr)                         # Tempo
+        tempo = librosa.beat.tempo(y=y, sr=sr)[0]                         # Tempo
         rms = np.mean(librosa.feature.rms(y=y))                                # RMS energy
-        zcr = np.mean(librosa.feature.zero_crossing_rate(y=y))                 # Zero-crossing rate
+        zcr = np.mean(librosa.feature.zero_crossing_rate(y=y))            # Zero-crossing rate
         
+        # Tạo mảng 1D từ tempo, rms, zcr
+        extra_features = np.array([tempo, rms, zcr])
+
         # Gộp các đặc trưng thành một vector
-        features = np.concatenate((mfcc, chroma, spectral_contrast, [tempo, rms, zcr]))
+        features = np.concatenate((mfcc, chroma, spectral_contrast, extra_features))
         return features
     except Exception as e:
         print(f"Error processing {file_path}: {e}")
@@ -35,7 +38,7 @@ def load_data(data_dir, ratings_file):
     y = []  # Danh sách nhãn
     
     for index, row in ratings.iterrows():
-        file_name = f"{row['Nro']:03d}.mp3"  # Ví dụ: 001.mp3
+        file_name = f"{row['Number']:03d}.mp3"  # Ví dụ: 001.mp3
         file_path = os.path.join(data_dir, file_name)
         if os.path.exists(file_path):
             features = extract_features(file_path)
@@ -50,11 +53,14 @@ def load_data(data_dir, ratings_file):
 # ### 3. Main function để chạy toàn bộ quy trình
 def main():
     # Đường dẫn đến thư mục chứa file audio và file ratings
-    data_dir = 'path/to/Set2'  # Thay bằng đường dẫn đến thư mục chứa file MP3
-    ratings_file = 'path/to/mean_ratings_set2.csv'  # Thay bằng đường dẫn đến file CSV
+    data_dir = '/media/haphuthinh/Data/Workspace/UIT/DO_AN_2/MusicEmotionDetection/Dataset/osfstorage-archive/Set2/set2'  # Thay bằng đường dẫn đến thư mục chứa file MP3
+    ratings_file = '/media/haphuthinh/Data/Workspace/UIT/DO_AN_2/MusicEmotionDetection/Dataset/osfstorage-archive/mean_ratings_set2.csv'  # Thay bằng đường dẫn đến file CSV
     
     print("Loading data and extracting features...")
     X, y = load_data(data_dir, ratings_file)
+    print(f"Loaded {len(X)} samples.")
+    print(f"Labels: {np.unique(y)}")
+    print(f"Label distribution: {pd.Series(y).value_counts()}")
     
     if len(X) == 0 or len(y) == 0:
         print("No data loaded. Please check your dataset directory and files.")
@@ -80,7 +86,7 @@ def main():
     print(classification_report(y_test, y_pred))
     
     # ### 8. Dự đoán cảm xúc cho một bài hát mới
-    new_song_path = 'path/to/new_song.mp3'  # Thay bằng đường dẫn bài hát mới
+    new_song_path = '/media/haphuthinh/Data/Workspace/UIT/DO_AN_2/MusicEmotionDetection/TestSong/BacPhanRemix2019-JackG5RDJFuture-6058030.mp3'  # Thay bằng đường dẫn bài hát mới
     print(f"\nClassifying new song: {new_song_path}")
     new_features = extract_features(new_song_path)
     
